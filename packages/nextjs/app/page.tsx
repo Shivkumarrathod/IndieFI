@@ -5,13 +5,37 @@ import type { NextPage } from "next";
 import { useAccount } from "wagmi";
 import { BugAntIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { Address } from "~~/components/scaffold-eth";
+import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 
 const Home: NextPage = () => {
   const { address: connectedAddress } = useAccount();
+  const { data: count } = useScaffoldReadContract({
+    contractName: "YourContract",
+    functionName: "count",
+  });
+
+  const { writeContractAsync } = useScaffoldWriteContract({
+    contractName: "YourContract",
+  });
+
+  const increment = async () => {
+    try {
+      await writeContractAsync({
+        functionName: "increamentCount",
+      });
+    } catch (e) {
+      console.error("Failed to increment:", e);
+    }
+  };
+  console.log(count);
 
   return (
     <>
       <div className="flex items-center flex-col grow pt-10">
+        <h1>{count}</h1>
+        <button className="btn btn-primary mb-4" onClick={increment}>
+          Increment Count
+        </button>
         <div className="px-5">
           <h1 className="text-center">
             <span className="block text-2xl mb-2">Welcome to</span>

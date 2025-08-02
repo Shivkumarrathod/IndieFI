@@ -19,7 +19,7 @@ contract YourContract {
     bool public premium = false;
     uint256 public totalCounter = 0;
     mapping(address => uint) public userGreetingCounter;
-
+    uint public count;
     // Events: a way to emit log statements from smart contract that can be listened to by external parties
     event GreetingChange(address indexed greetingSetter, string newGreeting, bool premium, uint256 value);
 
@@ -27,6 +27,8 @@ contract YourContract {
     // Check packages/hardhat/deploy/00_deploy_your_contract.ts
     constructor(address _owner) {
         owner = _owner;
+        count = 0;
+
     }
 
     // Modifier: used to define a set of rules that must be met before or after a function is executed
@@ -75,4 +77,7 @@ contract YourContract {
      * Function that allows the contract to receive ETH
      */
     receive() external payable {}
+    function increamentCount() public {
+        count += 1;
+    }
 }
