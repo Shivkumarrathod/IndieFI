@@ -1,95 +1,112 @@
 "use client";
 
+import { motion } from "framer-motion";
 import Link from "next/link";
 import type { NextPage } from "next";
 import { useAccount } from "wagmi";
-import { BugAntIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { Address } from "~~/components/scaffold-eth";
-import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 
 const Home: NextPage = () => {
   const { address: connectedAddress } = useAccount();
-  const { data: count } = useScaffoldReadContract({
-    contractName: "YourContract",
-    functionName: "count",
-  });
-
-  const { writeContractAsync } = useScaffoldWriteContract({
-    contractName: "YourContract",
-  });
-
-  const increment = async () => {
-    try {
-      await writeContractAsync({
-        functionName: "increamentCount",
-      });
-    } catch (e) {
-      console.error("Failed to increment:", e);
-    }
-  };
-  console.log(count);
 
   return (
-    <>
-      <div className="flex items-center flex-col grow pt-10">
-        <h1>{count}</h1>
-        <button className="btn btn-primary mb-4" onClick={increment}>
-          Increment Count
-        </button>
-        <div className="px-5">
-          <h1 className="text-center">
-            <span className="block text-2xl mb-2">Welcome to</span>
-            <span className="block text-4xl font-bold">Scaffold-ETH 2</span>
-          </h1>
-          <div className="flex justify-center items-center space-x-2 flex-col">
-            <p className="my-2 font-medium">Connected Address:</p>
-            <Address address={connectedAddress} />
-          </div>
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-[#0f172a] via-[#0b1d40] to-[#020617] text-white">
+      {/* Hero Section */}
+      <section className="flex flex-col items-center justify-center py-20 text-center px-4">
+        <motion.h1
+          className="text-5xl md:text-6xl font-extrabold tracking-tight text-shadow-lg"
+          initial={{ opacity: 0, y: -30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+        >
+          Build Your Micro-Economy with <span className="text-blue-400">IndieFi</span>
+        </motion.h1>
+        <motion.p
+          className="mt-6 text-lg md:text-xl max-w-2xl text-gray-300"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+        >
+          Launch a token, fundraise from backers, and power your app with crypto-native utilities — all in minutes.
+        </motion.p>
+        <motion.div
+          className="mt-8"
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.8 }}
+        >
+          <Link href="/launch">
+            <button className="px-6 py-3 rounded-xl font-semibold bg-blue-500 hover:bg-blue-600 transition shadow-xl hover:shadow-blue-600/50">
+              🚀 Launch Your Token
+            </button>
+          </Link>
+        </motion.div>
+      </section>
 
-          <p className="text-center text-lg">
-            Get started by editing{" "}
-            <code className="italic bg-base-300 text-base font-bold max-w-full break-words break-all inline-block">
-              packages/nextjs/app/page.tsx
-            </code>
-          </p>
-          <p className="text-center text-lg">
-            Edit your smart contract{" "}
-            <code className="italic bg-base-300 text-base font-bold max-w-full break-words break-all inline-block">
-              YourContract.sol
-            </code>{" "}
-            in{" "}
-            <code className="italic bg-base-300 text-base font-bold max-w-full break-words break-all inline-block">
-              packages/hardhat/contracts
-            </code>
-          </p>
+      {/* Wallet Info */}
+      {/* <section className="bg-[#111827] py-10 text-center border-t border-gray-800">
+        <h2 className="text-lg mb-2 font-semibold text-gray-400">Connected Wallet</h2>
+        <div className="inline-block px-4 py-2 bg-gray-900 rounded-xl">
+          <Address address={connectedAddress} />
         </div>
+      </section> */}
 
-        <div className="grow bg-base-300 w-full mt-16 px-8 py-12">
-          <div className="flex justify-center items-center gap-12 flex-col md:flex-row">
-            <div className="flex flex-col bg-base-100 px-10 py-10 text-center items-center max-w-xs rounded-3xl">
-              <BugAntIcon className="h-8 w-8 fill-secondary" />
-              <p>
-                Tinker with your smart contract using the{" "}
-                <Link href="/debug" passHref className="link">
-                  Debug Contracts
-                </Link>{" "}
-                tab.
-              </p>
-            </div>
-            <div className="flex flex-col bg-base-100 px-10 py-10 text-center items-center max-w-xs rounded-3xl">
-              <MagnifyingGlassIcon className="h-8 w-8 fill-secondary" />
-              <p>
-                Explore your local transactions with the{" "}
-                <Link href="/blockexplorer" passHref className="link">
-                  Block Explorer
-                </Link>{" "}
-                tab.
-              </p>
-            </div>
-          </div>
+      {/* Features */}
+      <section className="py-16 px-6 max-w-6xl mx-auto">
+        <motion.h2
+          className="text-3xl font-bold text-center mb-12 text-white"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          🛠 What You Can Build
+        </motion.h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-white">
+          {[
+            {
+              title: "🎯 Launch Token",
+              desc: "Create an ERC20 token with supply, name, and symbol for your app or project.",
+            },
+            {
+              title: "💸 Fundraise",
+              desc: "Accept ETH contributions with goal tracking, refunds, and cap enforcement.",
+            },
+            {
+              title: "📈 Stake & Burn",
+              desc: "Allow users to stake tokens to unlock features or burn them to reduce supply.",
+            },
+          ].map((feature, i) => (
+            <motion.div
+              key={i}
+              className="bg-gradient-to-br from-[#1f2937] to-[#0f172a] p-6 rounded-2xl shadow-md border border-blue-800/20 hover:shadow-blue-600/30 transition transform hover:scale-[1.02]"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.2 }}
+            >
+              <h3 className="text-xl font-semibold mb-2 text-blue-400">{feature.title}</h3>
+              <p className="text-gray-300 text-sm">{feature.desc}</p>
+            </motion.div>
+          ))}
         </div>
-      </div>
-    </>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-black text-center py-6 mt-auto border-t border-gray-800 text-gray-500 text-sm">
+        <p>&copy; {new Date().getFullYear()} IndieFi — Powering Indie Developers Everywhere.</p>
+        <div className="mt-2 space-x-4">
+          <Link href="/projects" className="hover:text-blue-400 transition">
+            Browse Projects
+          </Link>
+          <Link href="/dashboard" className="hover:text-blue-400 transition">
+            My Dashboard
+          </Link>
+          <Link href="https://github.com" target="_blank" className="hover:text-blue-400 transition">
+            GitHub
+          </Link>
+        </div>
+      </footer>
+    </div>
   );
 };
 

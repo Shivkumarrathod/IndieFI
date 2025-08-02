@@ -1,83 +1,212 @@
-//SPDX-License-Identifier: MIT
-pragma solidity >=0.8.0 <0.9.0;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
 
-// Useful for debugging. Remove when deploying to a live network.
-import "hardhat/console.sol";
-
-// Use openzeppelin to inherit battle-tested implementations (ERC20, ERC721, etc)
-// import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /**
- * A smart contract that allows changing a state variable of the contract and tracking the changes
- * It also allows the owner to withdraw the Ether in the contract
- * @author BuidlGuidl
+ * @title YourContract - Multi-Project IndieFi System (Token + Fundraise + Stake)
  */
-contract YourContract {
-    // State Variables
-    address public immutable owner;
-    string public greeting = "Building Unstoppable Apps!!!";
-    bool public premium = false;
-    uint256 public totalCounter = 0;
-    mapping(address => uint) public userGreetingCounter;
-    uint public count;
-    // Events: a way to emit log statements from smart contract that can be listened to by external parties
-    event GreetingChange(address indexed greetingSetter, string newGreeting, bool premium, uint256 value);
+contract YourContract is ERC20 {
+    address public masterOwner;
 
-    // Constructor: Called once on contract deployment
-    // Check packages/hardhat/deploy/00_deploy_your_contract.ts
-    constructor(address _owner) {
-        owner = _owner;
-        count = 0;
-
+    // Struct for each project
+    struct Project {
+        string name;
+        string symbol;
+        address creator;
+        uint256 fundraiseCap;
+        uint256 totalRaised;
+        bool fundraiseFinalized;
+        uint256 totalStaked;
+        uint256 initialSupply;
+        mapping(address => uint256) contributions;
+        mapping(address => uint256) staked;
     }
 
-    // Modifier: used to define a set of rules that must be met before or after a function is executed
-    // Check the withdraw() function
-    modifier isOwner() {
-        // msg.sender: predefined variable that represents address of the account that called the current function
-        require(msg.sender == owner, "Not the Owner");
+    // All deployed projects
+    Project[] public projects;
+    mapping(uint256 => mapping(address => uint256)) public balances;
+
+    event ProjectCreated(uint256 indexed projectId, string name, address creator);
+    event ContributionReceived(uint256 indexed projectId, address indexed from, uint256 amount);
+    event FundraiseFinalized(uint256 indexed projectId, address indexed creator, uint256 totalRaised);
+    event TokensStaked(uint256 indexed projectId, address indexed user, uint256 amount);
+    event TokensUnstaked(uint256 indexed projectId, address indexed user, uint256 amount);
+    event TokensBurned(uint256 indexed projectId, address indexed from, uint256 amount);
+    event TokensMinted(uint256 indexed projectId, address indexed to, uint256 amount);
+
+    constructor() ERC20("BaseToken", "BASE") {
+        masterOwner = msg.sender;
+    }
+
+    modifier onlyProjectCreator(uint256 projectId) {
+        require(msg.sender == projects[projectId].creator, "Not project creator");
         _;
     }
 
-    /**
-     * Function that allows anyone to change the state variable "greeting" of the contract and increase the counters
-     *
-     * @param _newGreeting (string memory) - new greeting to save on the contract
-     */
-    function setGreeting(string memory _newGreeting) public payable {
-        // Print data to the hardhat chain console. Remove when deploying to a live network.
-        console.log("Setting new greeting '%s' from %s", _newGreeting, msg.sender);
+    // Create a new project
+    function createProject(
+        string memory name,
+        string memory symbol,
+        uint256 initialSupply,
+        uint256 fundraiseCap
+    ) external {
+        Project storage newProject = projects.push();
+        newProject.name = name;
+        newProject.symbol = symbol;
+        newProject.creator = msg.sender;
+        newProject.initialSupply = initialSupply;
+        newProject.fundraiseCap = fundraiseCap;
 
-        // Change state variables
-        greeting = _newGreeting;
-        totalCounter += 1;
-        userGreetingCounter[msg.sender] += 1;
+        balances[projects.length - 1][msg.sender] = initialSupply;
 
-        // msg.value: built-in global variable that represents the amount of ether sent with the transaction
-        if (msg.value > 0) {
-            premium = true;
-        } else {
-            premium = false;
-        }
-
-        // emit: keyword used to trigger an event
-        emit GreetingChange(msg.sender, _newGreeting, msg.value > 0, msg.value);
+        emit ProjectCreated(projects.length - 1, name, msg.sender);
     }
 
-    /**
-     * Function that allows the owner to withdraw all the Ether in the contract
-     * The function can only be called by the owner of the contract as defined by the isOwner modifier
-     */
-    function withdraw() public isOwner {
-        (bool success, ) = owner.call{ value: address(this).balance }("");
-        require(success, "Failed to send Ether");
+    // Fundraising
+    function contribute(uint256 projectId) external payable {
+        Project storage project = projects[projectId];
+        require(!project.fundraiseFinalized, "Fundraise finalized");
+        require(project.totalRaised + msg.value <= project.fundraiseCap, "Cap exceeded");
+
+        project.contributions[msg.sender] += msg.value;
+        project.totalRaised += msg.value;
+
+        emit ContributionReceived(projectId, msg.sender, msg.value);
     }
 
-    /**
-     * Function that allows the contract to receive ETH
-     */
-    receive() external payable {}
-    function increamentCount() public {
-        count += 1;
+    function finalizeFundraise(uint256 projectId) external onlyProjectCreator(projectId) {
+        Project storage project = projects[projectId];
+        require(!project.fundraiseFinalized, "Already finalized");
+        require(project.totalRaised >= project.fundraiseCap, "Cap not reached");
+
+        project.fundraiseFinalized = true;
+        payable(project.creator).transfer(project.totalRaised);
+
+        emit FundraiseFinalized(projectId, project.creator, project.totalRaised);
     }
+
+    function refund(uint256 projectId) external {
+        Project storage project = projects[projectId];
+        require(!project.fundraiseFinalized, "Already finalized");
+
+        uint256 amount = project.contributions[msg.sender];
+        require(amount > 0, "No contribution");
+
+        project.contributions[msg.sender] = 0;
+        project.totalRaised -= amount;
+        payable(msg.sender).transfer(amount);
+    }
+
+    // Mint/Burn
+    function mint(uint256 projectId, address to, uint256 amount) external onlyProjectCreator(projectId) {
+        balances[projectId][to] += amount;
+        emit TokensMinted(projectId, to, amount);
+    }
+
+    function burn(uint256 projectId, address from, uint256 amount) external onlyProjectCreator(projectId) {
+        require(balances[projectId][from] >= amount, "Not enough balance");
+        balances[projectId][from] -= amount;
+        emit TokensBurned(projectId, from, amount);
+    }
+
+    // Staking
+    function stake(uint256 projectId, uint256 amount) external {
+        require(balances[projectId][msg.sender] >= amount, "Not enough tokens");
+
+        balances[projectId][msg.sender] -= amount;
+        projects[projectId].staked[msg.sender] += amount;
+        projects[projectId].totalStaked += amount;
+
+        emit TokensStaked(projectId, msg.sender, amount);
+    }
+
+    function unstake(uint256 projectId, uint256 amount) external {
+        require(projects[projectId].staked[msg.sender] >= amount, "Not enough staked");
+
+        projects[projectId].staked[msg.sender] -= amount;
+        projects[projectId].totalStaked -= amount;
+        balances[projectId][msg.sender] += amount;
+
+        emit TokensUnstaked(projectId, msg.sender, amount);
+    }
+
+    // View functions
+    function getProjectCount() external view returns (uint256) {
+        return projects.length;
+    }
+
+    function getMyBalance(uint256 projectId, address user) external view returns (uint256) {
+        return balances[projectId][user];
+    }
+
+    function getStaked(uint256 projectId, address user) external view returns (uint256) {
+        return projects[projectId].staked[user];
+    }
+
+    function getContribution(uint256 projectId, address user) external view returns (uint256) {
+        return projects[projectId].contributions[user];
+    }
+    
+    function getAllProjectsLite()external view
+    returns (
+        string[] memory names,
+        string[] memory symbols,
+        address[] memory creators,
+        uint256[] memory fundraiseCaps,
+        uint256[] memory totalRaisedList,
+        bool[] memory finalizedList,
+        uint256[] memory totalStakedList,
+        uint256[] memory initialSupplies
+    )
+{
+    uint256 len = projects.length;
+
+    names = new string[](len);
+    symbols = new string[](len);
+    creators = new address[](len);
+    fundraiseCaps = new uint256[](len);
+    totalRaisedList = new uint256[](len);
+    finalizedList = new bool[](len);
+    totalStakedList = new uint256[](len);
+    initialSupplies = new uint256[](len);
+
+    for (uint256 i = 0; i < len; i++) {
+        Project storage p = projects[i];
+        names[i] = p.name;
+        symbols[i] = p.symbol;
+        creators[i] = p.creator;
+        fundraiseCaps[i] = p.fundraiseCap;
+        totalRaisedList[i] = p.totalRaised;
+        finalizedList[i] = p.fundraiseFinalized;
+        totalStakedList[i] = p.totalStaked;
+        initialSupplies[i] = p.initialSupply;
+    }
+    }
+    function getProjectInfo(uint256 projectId)external view
+    returns (
+        string memory name,
+        string memory symbol,
+        address creator,
+        uint256 fundraiseCap,
+        uint256 totalRaised,
+        bool finalized,
+        uint256 totalStaked,
+        uint256 initialSupply
+    )
+    {
+        Project storage p = projects[projectId];
+        return (
+            p.name,
+            p.symbol,
+            p.creator,
+            p.fundraiseCap,
+            p.totalRaised,
+            p.fundraiseFinalized,
+            p.totalStaked,
+            p.initialSupply
+        );
+    }
+
+
 }
