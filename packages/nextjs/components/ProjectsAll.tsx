@@ -22,7 +22,8 @@ const ProjectList = () => {
       totalStaked: rawProjects[6][i],
       initialSupply: rawProjects[7][i],
     })) ?? [];
-
+  console.log(projects);
+  
   return (
     <section className="bg-[#0b1d30] text-white min-h-screen py-16 px-6">
       <h1 className="text-4xl font-bold text-center mb-12 text-blue-400">🔥 Live IndieFi Projects</h1>
@@ -59,7 +60,7 @@ const ProjectList = () => {
                 <p>Status: {project.finalized ? "✅ Finalized" : "⏳ In Progress"}</p>
               </div>
 
-              <Link href={`/project/${idx}`}>
+              <Link href={`/projects/${idx}`}>
                 <button className="w-full mt-4 bg-blue-500 hover:bg-blue-600 py-2 rounded-md font-semibold">
                   View Project
                 </button>

@@ -9,23 +9,24 @@ import { Address } from "~~/components/scaffold-eth";
 
 const ProjectDetails = () => {
   const { id } = useParams();
-  const projectId = id
+  const projectId = Number(id)
   const { address: connectedAddress } = useAccount();
   const [amount, setAmount] = useState("0.1"); // ETH amount
 
   const { data: project, isLoading } = useScaffoldReadContract({
     contractName: "YourContract",
     functionName: "getProjectInfo",
-    args: [projectId],
+    args: [BigInt(projectId)],
   });
-
+  console.log(project);
+  
   const { writeContractAsync } = useScaffoldWriteContract({ contractName: "YourContract" });
 
   const handleFinalize = async () => {
     try {
       await writeContractAsync({
         functionName: "finalizeFundraise",
-        args: [projectId],
+        args: [BigInt(projectId)],
       });
     } catch (err) {
       console.error("Finalize error:", err);
@@ -36,7 +37,7 @@ const ProjectDetails = () => {
     try {
       await writeContractAsync({
         functionName: "contribute",
-        args: [projectId],
+        args: [BigInt(projectId)],
         value: parseEther(amount),
       });
     } catch (err) {
@@ -48,7 +49,7 @@ const ProjectDetails = () => {
     try {
       await writeContractAsync({
         functionName: "refund",
-        args: [projectId],
+        args: [BigInt(projectId)],
       });
     } catch (err) {
       console.error("Refund error:", err);
